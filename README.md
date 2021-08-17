@@ -11,8 +11,14 @@ Usage:
     [<ids> ...]                list of client ids to be used
 ```
 
-* Test:
+## Test:
 
 ```
 mi6 test
+```
+
+## Install:
+
+```
+zef install .
 ```

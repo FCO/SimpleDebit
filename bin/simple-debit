@@ -1,6 +1,7 @@
 #!/usr/bin/env raku
-use SimpleDebit;
 use Cro::HTTP::Client;
+use lib <.>;
+use SimpleDebit;
 
 multi MAIN(
     Str  :o(:$output)              = "payments.csv",                        #= output file name
