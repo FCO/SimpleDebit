@@ -9,7 +9,7 @@ multi MAIN(
     UInt :$retry                   = 3,                                     #= max number of retries
     Bool :$*retry-on-client-error,                                          #= it defaults to only retry on server errors (5xx)
                                                                             #= if defined, it will retry on client errors (4xx) as well
-    Bool :v($*verbose)                                                      #= prints what its going to do
+    Bool :v(:$*verbose)                                                     #= prints what its going to do
 ) {
     my $file =  $output.IO.open(:w) || die "Could not create file '$output'";
     my $*ua  = Cro::HTTP::Client.new: :$base-uri;
@@ -24,7 +24,7 @@ multi MAIN(
     UInt :$retry                   = 3,                                     #= max number of retries
     Bool :$*retry-on-client-error,                                          #= it defaults to only retry on server errors (5xx)
                                                                             #= if defined, it will retry on client errors (4xx) as well
-    Bool :v($*verbose)                                                      #= prints what its going to do
+    Bool :v(:$*verbose)                                                     #= prints what its going to do
 ) {
     my $file =  $output.IO.open(:w) || die "Could not create file '$output'";
     my $*ua  = Cro::HTTP::Client.new: :$base-uri;
