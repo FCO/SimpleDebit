@@ -1,0 +1,32 @@
+use SimpleDebit;
+use Cro::HTTP::Client;
+
+multi MAIN(
+    Str  :o(:$output)              = "payments.csv",                        #= output file name
+    Str  :$base-uri                = "https://simpledebit.herokuapp.com/",  #= base uri used to fetch client list and each client
+    UInt :$retry                   = 3,                                     #= max number of retries
+    Bool :$*retry-on-client-error,                                          #= it defaults to only retry on server errors (5xx)
+                                                                            #= if defined, it will retry on client errors (4xx) as well
+    Bool :v($*verbose)                                                      #= prints what its going to do
+) {
+    my $file =  $output.IO.open(:w) || die "Could not create file '$output'";
+    my $*ua  = Cro::HTTP::Client.new: :$base-uri;
+    my @ids  = get-list-of-clients;
+    my @objs = lazy gather get-clients @ids, $retry;
+    write-file $file, @objs
+}
+multi MAIN(
+    *@ids,                                                                  #= list of client ids to be used
+    Str  :o(:$output)              = "payments.csv",                        #= output file name
+    Str  :$base-uri                = "https://simpledebit.herokuapp.com/",  #= base uri used to fetch client list and each client
+    UInt :$retry                   = 3,                                     #= max number of retries
+    Bool :$*retry-on-client-error,                                          #= it defaults to only retry on server errors (5xx)
+                                                                            #= if defined, it will retry on client errors (4xx) as well
+    Bool :v($*verbose)                                                      #= prints what its going to do
+) {
+    my $file =  $output.IO.open(:w) || die "Could not create file '$output'";
+    my $*ua  = Cro::HTTP::Client.new: :$base-uri;
+    my @objs = lazy gather get-clients @ids, $retry;
+    write-file $file, @objs
+}
+

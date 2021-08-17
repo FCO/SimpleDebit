@@ -1,0 +1,6 @@
+use Test;
+use SimpleDebit;
+
+pass "replace me";
+
+done-testing;

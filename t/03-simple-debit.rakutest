@@ -1,0 +1,138 @@
+use Test;
+use Test::Mock;
+use SimpleDebit;
+use SimpleDebit::Client;
+use Cro::HTTP::Client;
+use Cro::HTTP::Response;
+
+my $*quiet = True;
+
+subtest "write-file" => {
+    my $name = "file-name-aaa.csv";
+    my $file = $*TMPDIR.add($name++).open: :rw;
+    write-file $file, [];
+    $file.seek: 0, SeekFromBeginning;
+    my @lines =  $file.lines;
+    is @lines.elems, 1, "Empty array created a header only-file";
+    is @lines.head, "iban,amount_in_pence", "Right header";
+
+    $file = $*TMPDIR.add($name++).open: :rw;
+    write-file $file, [ SimpleDebit::Client.new: :id<id1>, :iban<iban1>, :10min-trans, :10fee-discount, :100amount ];
+    $file.seek: 0, SeekFromBeginning;
+    @lines =  $file.lines;
+    is @lines.elems, 2, "Empty array created a header only-file";
+    is @lines.shift, "iban,amount_in_pence", "Right header";
+    is @lines.shift, "iban1,100", "Right value";
+
+    $file = $*TMPDIR.add($name++).open: :rw;
+    write-file $file, [ SimpleDebit::Client.new(:id<id1>, :iban<iban1>, :10min-trans, :10fee-discount, :100amount) xx 100 ];
+    $file.seek: 0, SeekFromBeginning;
+    @lines =  $file.lines;
+    is @lines.elems, 101, "Empty array created a header only-file";
+    is @lines.shift, "iban,amount_in_pence", "Right header";
+    is @lines.shift, "iban1,100", "Right value" for ^100;
+}
+
+subtest "get-list-of-clients" => {
+    my @list;
+    my $resp = mocked Cro::HTTP::Response, returning => { body => start { @list } }
+    my $*ua = mocked Cro::HTTP::Client, returning => { get => start { $resp } }
+    is get-list-of-clients, [];
+    @list = <a b c d e>;
+    is get-list-of-clients, <a b c d e>;
+
+    throws-like {
+        @list = 42;
+        is get-list-of-clients, 42;
+    }, Exception, message => /"Server has answered unexpected data"/;
+}
+
+my $id                        = "M28A9";
+my $iban                      = "GB2756386333762976";
+my $minimum_transaction_count = 49;
+my $fees_discount             = 7;
+
+my %data =
+    :$id,
+    :$iban,
+    :discount{
+        :$minimum_transaction_count,
+        :$fees_discount
+    },
+    :transactions[
+        {
+            :54869amount,
+            :290fee,
+        },
+        {
+            :50033amount,
+            :297fee,
+        },
+    ]
+;
+my $resp = mocked Cro::HTTP::Response, returning => { body => start { %data } }
+
+subtest "get-clients" => {
+    my $*ua = mocked Cro::HTTP::Client, returning => { get => start { $resp } }
+    my @clients = lazy gather get-clients [ "abc", ];
+    my $c = @clients.head;
+    isa-ok $c,          SimpleDebit::Client;
+    is $c.id,           $id;
+    is $c.iban,         $iban;
+    is $c.min-trans,    $minimum_transaction_count;
+    is $c.fee-discount, $fees_discount;
+
+    is $c.transactions[0].amount, 54869;
+    is $c.transactions[0].fee,    290;
+    is $c.transactions[1].amount, 50033;
+    is $c.transactions[1].fee,    297;
+}
+
+subtest "get-clients failure" => {
+    my $*ua = mocked Cro::HTTP::Client, computing => { get => -> | { start { X::Cro::HTTP::Error::Server.new(response => Cro::HTTP::Response.new).throw } } }
+    my @clients = eager gather get-clients [ "abc", ];
+    is @clients, "";
+}
+
+subtest "get-clients failure" => {
+    my atomicint $counter = 0;
+    my $*ua = mocked Cro::HTTP::Client, computing => {
+        get => -> | {
+            start {
+                $counter⚛++;
+                X::Cro::HTTP::Error::Server.new(response => Cro::HTTP::Response.new).throw
+            }
+        }
+    }
+    my @clients = eager gather get-clients [ "abc", ], 2;
+    is @clients, "";
+    is $counter, 3;
+}
+
+subtest "get-clients retry" => {
+    my $*ua = mocked Cro::HTTP::Client, computing => {
+        get => -> | {
+            state $count = 0;
+            start {
+                ++$count > 5
+                ?? $resp
+                !! X::Cro::HTTP::Error::Server.new(response => Cro::HTTP::Response.new).throw
+            }
+        }
+    }
+    my @clients = eager gather get-clients [ "abc", ], 10;
+    say @clients;
+    my $c = @clients.head;
+    isa-ok $c,          SimpleDebit::Client;
+    is $c.id,           $id;
+    is $c.iban,         $iban;
+    is $c.min-trans,    $minimum_transaction_count;
+    is $c.fee-discount, $fees_discount;
+
+    is $c.transactions[0].amount, 54869;
+    is $c.transactions[0].fee,    290;
+    is $c.transactions[1].amount, 50033;
+    is $c.transactions[1].fee,    297;
+}
+
+done-testing

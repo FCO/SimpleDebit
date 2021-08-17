@@ -1,0 +1,26 @@
+{
+  "auth" : "cpan:FCO",
+  "authors" : [
+    "Fernando Correa de Oliveira"
+  ],
+  "build-depends" : [ ],
+  "depends" : [
+      "cro"
+  ],
+  "description" : "blah blah blah",
+  "license" : "Artistic-2.0",
+  "name" : "SimpleDebit",
+  "perl" : "6.d",
+  "provides" : {
+    "SimpleDebit" : "lib/SimpleDebit.rakumod",
+    "SimpleDebit::Client" : "lib/SimpleDebit/Client.rakumod",
+    "SimpleDebit::Transaction" : "lib/SimpleDebit/Transaction.rakumod"
+  },
+  "resources" : [ ],
+  "source-url" : "",
+  "tags" : [ ],
+  "test-depends" : [
+      "Test::Mock"
+  ],
+  "version" : "0.0.1"
+}

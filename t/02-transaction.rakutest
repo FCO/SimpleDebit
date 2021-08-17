@@ -1,0 +1,34 @@
+use Test;
+use SimpleDebit::Client;
+use SimpleDebit::Transaction;
+
+given SimpleDebit::Client.new:
+    id           => "bla",
+    iban         => "ble",
+    min-trans    => 2,
+    fee-discount => 2,
+    transactions => [
+        SimpleDebit::Transaction.new( :12amount, :2fee ),
+    ] {
+
+    isa-ok $_, SimpleDebit::Client;
+    is .transactions.elems, 1;
+    is .amount, 10;
+}
+
+given SimpleDebit::Client.new:
+    id           => "bla",
+    iban         => "ble",
+    min-trans    => 2,
+    fee-discount => 2,
+    transactions => [
+        SimpleDebit::Transaction.new( :52amount, :2fee ),
+        SimpleDebit::Transaction.new( :55amount, :5fee ),
+    ] {
+
+    isa-ok $_, SimpleDebit::Client;
+    is .transactions.elems, 2;
+    is .amount, 98;
+}
+
+done-testing
